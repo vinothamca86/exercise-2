@@ -1,92 +1,161 @@
-var taskInput = document.getElementById("new-task");
-var addButton = document.getElementsByTagName("button")[0];
-var incompleteTasksHolder = document.getElementById("incomplete-tasks");
-var completedTasksHolder = document.getElementById("completed-tasks");
+'use strict';
+const task = function () {
 
-var createNewTaskElement = function (taskString, arr) {
-    listItem = document.createElement("li");
-    checkBox = document.createElement("input");
-    label = document.createElement("label");
-    editInput = document.createElement("input");
-    editButton = document.createElement("button");
-    deleteButton = document.createElement("button");
+    var taskInput;
+    var addButton;
+    var incompleteTasksHolder;
+    var completedTasksHolder;
 
-    checkBox.type = "checkbox";
-    editInput.type = "text";
-    editButton.innerText = "Edit";
-    editButton.className = "edit";
-    deleteButton.innerText = "Delete";
-    deleteButton.className = "delete";
-    label.innerText = taskString;
+    const INCOMPLETE_TASK = "incomplete-tasks";
+    const COMPLETED_TASK = "completed-tasks";
 
-    listItem.appendChild(checkBox);
-    listItem.appendChild(label);
-    listItem.appendChild(editInput);
-    listItem.appendChild(editButton);
-    listItem.appendChild(deleteButton);
+    const createNewTaskElement = function (taskString, arr) {
+        var listItem = document.createElement("li");
+        var checkBox = document.createElement("input");
+        var label = document.createElement("label");
+        var editInput = document.createElement("input");
+        var editButton = document.createElement("button");
+        var deleteButton = document.createElement("button");
 
-    return listItem;
-};
+        checkBox.type = "checkbox";
+        editInput.type = "text";
+        editButton.innerText = "Edit";
+        editButton.className = "edit";
+        deleteButton.innerText = "Delete";
+        deleteButton.className = "delete";
+        label.innerText = taskString;
 
-var addTask = function () {
-    var listItemName = taskInput.value || "New Item"
-    listItem = createNewTaskElement(listItemName)
-    incompleteTasksHolder.appendChild(listItem)
-    bindTaskEvents(listItem, taskCompleted)
-    taskInput.value = "";
-};
+        listItem.appendChild(checkBox);
+        listItem.appendChild(label);
+        listItem.appendChild(editInput);
+        listItem.appendChild(editButton);
+        listItem.appendChild(deleteButton);
 
-var editTask = function () {
-    var listItem = this.parentNode;
-    var editInput = listItem.querySelectorAll("input[type=text")[0];
-    var label = listItem.querySelector("label");
-    var button = listItem.getElementsByTagName("button")[0];
+        return listItem;
+    };
 
-    var containsClass = listItem.classList.contains("editMode");
-    if (containsClass) {
-        label.innerText = editInput.value
-        button.innerText = "Edit";
-    } else {
-        editInput.value = label.innerText
-        button.innerText = "Save";
+    const addTask = function () {
+        var listItemName = taskInput.value || "New Item";
+        addTaskElement(listItemName);
+        updateStore(listItemName);
+    };
+
+    const addTaskElement = function (listItemName) {
+        var listItem = createNewTaskElement(listItemName)
+        incompleteTasksHolder.appendChild(listItem)
+        bindTaskEvents(listItem, taskCompleted)
+        taskInput.value = "";
+    };
+
+    const updateStore = function (taskName) {
+
+        if (taskName) {
+            var incompleteTask = getItem(INCOMPLETE_TASK) || [];
+            incompleteTask.push(taskName);
+            setItem(INCOMPLETE_TASK, incompleteTask);
+        }
     }
 
-    listItem.classList.toggle("editMode");
-};
+    const editTask = function () {
+        var listItem = this.parentNode;
+        var editInput = listItem.querySelectorAll("input[type=text")[0];
+        var label = listItem.querySelector("label");
+        var button = listItem.getElementsByTagName("button")[0];
 
-var deleteTask = function (el) {
-    var listItem = this.parentNode;
-    var ul = listItem.parentNode;
-    ul.removeChild(listItem);
-};
+        var containsClass = listItem.classList.contains("editMode");
+        if (containsClass) {
+            label.innerText = editInput.value
+            button.innerText = "Edit";
+        } else {
+            editInput.value = label.innerText
+            button.innerText = "Save";
+        }
 
-var taskCompleted = function (el) {
-    var listItem = this.parentNode;
-    completedTasksHolder.appendChild(listItem);
-    bindTaskEvents(listItem, taskIncomplete);
-};
+        listItem.classList.toggle("editMode");
+    };
 
-var taskIncomplete = function () {
-    var listItem = this.parentNode;
-    incompleteTasksHolder.appendChild(listItem);
-    bindTaskEvents(listItem, taskCompleted);
-};
+    const deleteTask = function (el) {
 
-var bindTaskEvents = function (taskListItem, checkBoxEventHandler, cb) {
-    var checkBox = taskListItem.querySelectorAll("input[type=checkbox]")[0];
-    var editButton = taskListItem.querySelectorAll("button.edit")[0];
-    var deleteButton = taskListItem.querySelectorAll("button.delete")[0];
-    editButton.onclick = editTask;
-    deleteButton.onclick = deleteTask;
-    checkBox.onchange = checkBoxEventHandler;
-};
+        var listItem = this.parentNode;
+        var ul = listItem.parentNode;
 
-addButton.addEventListener("click", addTask);
+        if (ul.id === INCOMPLETE_TASK) {
 
-for (var i = 0; i < incompleteTasksHolder.children.length; i++) {
-    bindTaskEvents(incompleteTasksHolder.children[i], taskCompleted);
-}
+            var incompleteTask = getItem(INCOMPLETE_TASK) || [];
+            const index = incompleteTask.indexOf(listItem.children[1].textContent);
+            if (index > -1) {
+                incompleteTask.splice(index, 1)
+                setItem(INCOMPLETE_TASK, incompleteTask);
+            }
+        } else if (ul.id === COMPLETED_TASK) {
 
-for (var i = 0; i < completedTasksHolder.children.length; i++) {
-    bindTaskEvents(completedTasksHolder.children[i], taskIncomplete);
-}
+            var completedTask = getItem(COMPLETED_TASK) || [];
+            const index = completedTask.indexOf(listItem.children[1].textContent);
+            if (index > -1) {
+                completedTask.splice(index, 1)
+                setItem(INCOMPLETE_TASK, completedTask);
+            }
+        }
+
+        ul.removeChild(listItem);
+    };
+
+    const taskCompleted = function (el) {
+        var listItem = this.parentNode;
+        completedTasksHolder.appendChild(listItem);
+        bindTaskEvents(listItem, taskIncomplete);
+    };
+
+    const taskIncomplete = function () {
+        var listItem = this.parentNode;
+        incompleteTasksHolder.appendChild(listItem);
+        bindTaskEvents(listItem, taskCompleted);
+    };
+
+    const bindTaskEvents = function (taskListItem, checkBoxEventHandler, cb) {
+        var checkBox = taskListItem.querySelectorAll("input[type=checkbox]")[0];
+        var editButton = taskListItem.querySelectorAll("button.edit")[0];
+        var deleteButton = taskListItem.querySelectorAll("button.delete")[0];
+        editButton.onclick = editTask;
+        deleteButton.onclick = deleteTask;
+        checkBox.onchange = checkBoxEventHandler;
+    };
+
+    const setItem = function (key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    };
+
+    const getItem = function (key) {
+        return JSON.parse(localStorage.getItem(key));
+    };
+
+    const fetchTaskRequest = function () {
+
+        var incompleteTask = getItem(INCOMPLETE_TASK) || [];
+        for (var i = 0; i < incompleteTask.length; i++) {
+            addTaskElement(incompleteTask[i]);
+        }
+        // var completedTask = getItem("completed-task") || [];
+    };
+
+    document.onreadystatechange = function () {
+        if (document.readyState == "complete") {
+            taskInput = document.getElementById("new-task");
+            addButton = document.getElementsByTagName("button")[0];
+            incompleteTasksHolder = document.getElementById("incomplete-tasks");
+            completedTasksHolder = document.getElementById("completed-tasks");
+            addButton.addEventListener("click", addTask);
+
+            for (var i = 0; i < incompleteTasksHolder.children.length; i++) {
+                bindTaskEvents(incompleteTasksHolder.children[i], taskCompleted);
+            }
+
+            for (var i = 0; i < completedTasksHolder.children.length; i++) {
+                bindTaskEvents(completedTasksHolder.children[i], taskIncomplete);
+            }
+
+            fetchTaskRequest();
+        }
+    }
+}();
+
